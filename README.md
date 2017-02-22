@@ -12,7 +12,7 @@ Currently the following information is generated :
 * Space Services
 * Space User Provided Services
 
-.Requires
+Requires
 
 * Java 1.8
 * Maven
@@ -25,8 +25,8 @@ Usage
 
 
 Options
-   --hideProgress             Hides the progress of traversing the Cloud Foundry Instance
-   --skip-ssl-validation      Skip verification of the API endpoint. Not recommended! 
+   * --hideProgress             Hides the progress of traversing the Cloud Foundry Instance
+   * --skip-ssl-validation      Skip verification of the API endpoint. Not recommended! 
 
 
 The "progress" messages are printed to standard out (stdout)
