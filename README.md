@@ -4,27 +4,29 @@ CFAppDetails generates application and service instance information from an exis
 
 Currently the following information is generated :
 
-Orgs
-Orgs Users
-Spaces
-Space Users
-Space Applications
-Space Services
-Space User Provided Services
+* Orgs
+* Orgs Users
+* Spaces
+* Space Users
+* Space Applications
+* Space Services
+* Space User Provided Services
 
-Requires
+.Requires
 
-Java 1.8
-Maven
+* Java 1.8
+* Maven
 
 Building
-mvn clean package
+* mvn clean package
 
 Usage
-java -jar ./target/cfappsdetails-0.0.1-SNAPSHOT.jar API_ENDPOINT UserName Password [--hideProgress] [--skip-ssl-validation]
+* java -jar ./target/cfappsdetails-0.0.1-SNAPSHOT.jar API_ENDPOINT UserName Password [--hideProgress] [--skip-ssl-validation]
 
 
 Options
    --hideProgress             Hides the progress of traversing the Cloud Foundry Instance
    --skip-ssl-validation      Skip verification of the API endpoint. Not recommended! 
+
+
 The "progress" messages are printed to standard out (stdout)
