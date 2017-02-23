@@ -29,4 +29,4 @@ Options
    * --skip-ssl-validation      Skip verification of the API endpoint. Not recommended! 
 
 
-The "progress" messages are printed to standard out (stdout) and written to local txt file with the naming convention 'FoundationDetails_<api_end_point_url>.txt'
+The "progress" messages are printed to standard out (stdout) and written to local txt file with the naming convention 'FoundationDetails_api_end_point_url.txt' where the api_end_point_url is the api end point entered on command line (without the protocol https://).
