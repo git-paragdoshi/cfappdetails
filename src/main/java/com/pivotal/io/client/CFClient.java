@@ -3,6 +3,7 @@ package com.pivotal.io.client;
 import org.springframework.cloud.netflix.feign.FeignClient;
 
 import com.pivotal.io.results.InfoResult;
+import com.pivotal.io.results.OrgQuotaResult;
 import com.pivotal.io.results.OrganizationResult;
 import com.pivotal.io.results.ServiceBindingsResult;
 import com.pivotal.io.results.ServicePlanResult;
@@ -13,17 +14,25 @@ import com.pivotal.io.results.UserResult;
 import feign.Headers;
 import feign.Param;
 import feign.RequestLine;
+
 import com.pivotal.io.results.UserProvidedServiceResult;
 
 import com.pivotal.io.results.SpaceServiceInstanceResult;
 
 import com.pivotal.io.results.SpaceAppResult;
+import com.pivotal.io.results.SpaceQuotaResult;
 
 @FeignClient(name = "Client")
 public interface CFClient {
 	
 	  @RequestLine("GET /v2/info")
 	   InfoResult details();
+	  
+	  // Org Quotas
+	   @Headers({"Authorization: bearer {accessToken}", "Cookie: "})
+	   @RequestLine("GET /v2/quota_definitions")
+	   OrgQuotaResult retrieveOrgQuotas(@Param("accessToken") String accessToken);
+	   
 	  
 	  // Orgs
 	   @Headers({"Authorization: bearer {accessToken}", "Cookie: "})
@@ -35,6 +44,12 @@ public interface CFClient {
 	   @Headers({"Authorization: bearer {accessToken}", "Cookie: "})
 	   @RequestLine("GET /v2/organizations/{guid}/users")
 	   UserResult retrieveUsers(@Param("accessToken") String accessToken,  @Param("guid") String orgGuid);
+	   
+	// Space Quotas
+	   @Headers({"Authorization: bearer {accessToken}", "Cookie: "})
+	   @RequestLine("GET /v2/organizations/{guid}/space_quota_definitions")
+	   SpaceQuotaResult retrieveSpaceQuotas(@Param("accessToken") String accessToken, @Param("guid") String orgGuid);
+	   
 	   
 	// Org Spaces
 	   @Headers({"Authorization: bearer {accessToken}", "Cookie: "})
