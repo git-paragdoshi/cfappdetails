@@ -12,6 +12,8 @@ import com.pivotal.io.client.AuthClient;
 import com.pivotal.io.client.CFClient;
 import com.pivotal.io.results.InfoResult;
 import com.pivotal.io.results.LoginResult;
+import com.pivotal.io.results.OrgQuotaResult;
+import com.pivotal.io.results.OrgResource;
 import com.pivotal.io.results.ServiceBindingsResult;
 import com.pivotal.io.results.ServicePlanResult;
 import com.pivotal.io.results.ServiceResult;
@@ -23,13 +25,18 @@ import feign.Feign;
 import feign.FeignException;
 import feign.gson.GsonDecoder;
 import feign.slf4j.Slf4jLogger;
+
 import com.pivotal.io.results.UserProvidedServiceResult;
 
 import com.pivotal.io.results.SpaceAppResult;
+import com.pivotal.io.results.SpaceQuotaResult;
 
 public class CFInstance {
 
-	private HashMap<String, String> spaceApps = new HashMap<String, String>();
+	private HashMap<String,String> orgQuotas = new HashMap<String,String>();
+	private HashMap<String,String> spaceApps = new HashMap<String,String>();
+	private HashMap<String,String> spaceQuotas = new HashMap<String, String>();
+	private static String[] quotasToUpdate = { "default", "runaway", "p-spring-cloud-services" };
 
 	private String apiEndpoint;
 	private String authEndpoint;
@@ -118,10 +125,35 @@ public class CFInstance {
 	}
 
 	public void generateCFDetails() {
+		
+		processOrgQuotas();
 		// retrieve all Orgs and process them
 		processOrgs();
 	}
+	public void processOrgQuotas()
+	{
+		OrgQuotaResult orgQuotaResult = cfClient.retrieveOrgQuotas(accessToken);
+		orgQuotaResult.resources.forEach(( resource) -> {
+			
+			String quotaGuid = resource.metadata.guid;
+			String quotaName = resource.entity.name;
 
+			long totalMemory = resource.entity.memory_limit;
+			long instanceMemory = resource.entity.instance_memory_limit;
+			int routes = resource.entity.total_routes;
+			int serviceInstances = resource.entity.total_services;
+			boolean allowPaidServicePlans = resource.entity.non_basic_services_allowed;
+			progressMessage("Quota Details for: " + quotaName + ":\r\n"
+							+ " Total Memory:" + totalMemory
+							+ " Instance Memory: " + instanceMemory
+							+ " Number of Routes: " + routes
+							+ " Number of Service Instances: " + serviceInstances
+							);
+			
+			
+			orgQuotas.put(quotaGuid,  quotaName);
+		});
+	}
 	public void processOrgs() {
 		progressMessage("Retrieving All Organizations");
 		com.pivotal.io.results.OrganizationResult orgResult = cfClient.retrieveOrganizations(this.accessToken);
@@ -147,7 +179,8 @@ public class CFInstance {
 		String guid = resource.metadata.guid;
 		String orgName = resource.entity.name;
 
-		progressMessage("Processing Org: " + orgName);
+		
+		processOrgEntityDetails(resource);
 
 		processOrgUsers(orgName, guid);
 
@@ -155,6 +188,36 @@ public class CFInstance {
 
 		progressMessage("Finished processing Organization: " + orgName);
 	}
+	private String getOrgQuotaName(String orgQuotaGuid)
+	{
+		String quotaName = orgQuotas.get(orgQuotaGuid);
+		if ((quotaName != null) && !CFInstance.updateQuota( quotaName ))
+		{
+			return quotaName;
+		}
+		
+		return null;
+	}
+	public static boolean updateQuota(String quotaName)
+	{
+		for(int x=0;x<quotasToUpdate.length;x++)
+		{
+			if (quotasToUpdate[x].equals(quotaName))
+				return true;
+		}
+		
+		return false;
+	}
+
+	private void processOrgEntityDetails(OrgResource resource) {
+		
+		progressMessage("Processing Org: " + resource.entity.name + "\r\n"
+						+ " Using Quota : " + getOrgQuotaName(resource.entity.quota_definition_guid)
+						);
+		
+	}
+
+
 
 	private void processSpaces(String orgName, String orgGuid) {
 		progressMessage("Processing spaces in Org: " + orgName);
@@ -162,17 +225,44 @@ public class CFInstance {
 		// now get the spaces...
 		SpaceResult spaceResult = cfClient.retrieveSpaces(accessToken, orgGuid);
 		progressMessage("Number of Spaces in Org " + orgName + " are: " + spaceResult.resources.size());
-
+		processSpaceQuotas(orgGuid);
 		spaceResult.resources.forEach((spaceResource) -> {
 			String spaceName = spaceResource.entity.name;
 			String spaceGuid = spaceResource.metadata.guid;
-			progressMessage("Processing space: " + spaceName);
+			progressMessage("Processing space: " + spaceName+ " using space quota: " + spaceQuotas.get(spaceResource.entity.space_quota_definition_guid));
 			processSpaceApps(spaceGuid, spaceName);
 			processSpaceServices(spaceGuid, spaceName);
 			processUserProvidedServices(spaceGuid, spaceName);
+			
 			progressMessage("Processing for Space: " + spaceName + " complete.");
 		});
 
+	}
+	
+	private void processSpaceQuotas(String orgGuid)
+	{
+		progressMessage("Processing Space Quotas");
+		
+		SpaceQuotaResult spaceQuotaResult = cfClient.retrieveSpaceQuotas(accessToken, orgGuid);
+		spaceQuotaResult.resources.forEach((spaceQuotaResource) -> 
+		{
+			String quotaGuid = spaceQuotaResource.metadata.guid;
+			String quotaName = spaceQuotaResource.entity.name;
+			progressMessage("Processing space quota " + quotaName);
+			int instanceMemory =  spaceQuotaResource.entity.instance_memory_limit;
+			long totalMemory = spaceQuotaResource.entity.memory_limit;
+			int routes = spaceQuotaResource.entity.total_routes;
+			int serviceInstances = spaceQuotaResource.entity.total_services;
+			boolean allowPaidServicePlans = spaceQuotaResource.entity.non_basic_services_allowed;
+			progressMessage("Space Quota Details for: " + quotaName + ":\r\n"
+					+ " Total Memory:" + totalMemory
+					+ " Instance Memory: " + instanceMemory
+					+ " Number of Routes: " + routes
+					+ " Number of Service Instances: " + serviceInstances
+					);
+			spaceQuotas.put(quotaGuid, quotaName);
+
+		});
 	}
 
 	private void processSpaceApps(String spaceGuid, String spaceName) {
