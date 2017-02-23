@@ -1,5 +1,6 @@
 package com.pivotal.io;
 
+import java.io.FileWriter;
 import java.util.HashMap;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -35,6 +36,7 @@ public class CFInstance {
 	private String accessToken;
 	private CFClient cfClient;
 	private static boolean showProgress;
+	FileWriter fileWriter=null;
 
 	public CFInstance(String apiEndpoint, boolean skipSslValidation, boolean displayProgress) {
 		// TODO Auto-generated constructor stub
@@ -43,7 +45,10 @@ public class CFInstance {
 		if (skipSslValidation) {
 			setupNonTrustedSSLSupport();
 		}
+		createFileToWriteFoundationDetails(apiEndpoint);
 	}
+
+	
 
 	private static void setupNonTrustedSSLSupport() {
 		TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
@@ -68,6 +73,21 @@ public class CFInstance {
 			e.printStackTrace(System.err);
 		}
 	}
+	
+	private void createFileToWriteFoundationDetails(String apiEndpoint2) {
+		try {
+			System.out.println("apiEndpoint is " + apiEndpoint);
+			String api = apiEndpoint;
+			if (apiEndpoint.startsWith("https://")) {
+				api = apiEndpoint.substring(8);
+			}
+			System.out.println("api is " + api);
+			fileWriter = new FileWriter("FoundationDetails_" + api + ".txt");
+		} catch (Exception e) {
+			System.err.println("could not create file: " + e.getMessage());
+		}
+
+	}
 
 	public boolean login(String userName, String password) {
 		// first set up the API Endpoint
@@ -78,7 +98,7 @@ public class CFInstance {
 
 		// get the authorization endpoint
 		this.authEndpoint = infoResult.authorization_endpoint;
-		progressMessage("Retrieved Authentication Endpoint");
+		progressMessage("Retrieved Authentication Endpoint: " +authEndpoint);
 
 		// now login
 		AuthClient authClient = Feign.builder().logger(new Slf4jLogger()).decoder(new GsonDecoder())
@@ -106,10 +126,21 @@ public class CFInstance {
 		progressMessage("Retrieving All Organizations");
 		com.pivotal.io.results.OrganizationResult orgResult = cfClient.retrieveOrganizations(this.accessToken);
 		progressMessage("Number of Orgs: " + orgResult.total_results);
-		progressMessage("Number of Result Pages: " + orgResult.total_pages);
 		orgResult.resources.forEach((resource) -> {
 			processOrg(resource);
 		});
+		progressMessage("Processing All Organization Complete");
+		if(fileWriter!=null)
+		{
+			try
+			{
+				fileWriter.close();
+			}
+			catch(Exception e)
+			{
+				//do nothing
+			}
+		}
 	}
 
 	private void processOrg(com.pivotal.io.results.OrgResource resource) {
@@ -263,9 +294,20 @@ public class CFInstance {
 
 	}
 
-	private static void progressMessage(String msg) {
+	private void progressMessage(String msg) {
 		if (showProgress) {
 			System.out.println(msg);
+		}
+		
+		if(fileWriter!=null)
+		{
+			try{
+			fileWriter.write(msg+"\r\n");
+			}
+			catch (Exception e)
+			{
+				//do nothing
+			}
 		}
 	}
 
