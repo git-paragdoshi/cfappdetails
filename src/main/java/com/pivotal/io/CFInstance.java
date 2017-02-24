@@ -279,9 +279,11 @@ public class CFInstance {
 			progressMessage("App memory allocated is: " + resource.entity.memory);
 			progressMessage("Disk quota allocated is: " + resource.entity.disk_quota);
 			progressMessage("Build Pack is: " + resource.entity.detected_buildpack);
+			progressMessage("instance state is: " + resource.entity.state);
 			// add it to hashmap so that it can tied to the service instance in
 			// the next call.
 			spaceApps.put(appGuid, appName);
+			
 
 		});
 
